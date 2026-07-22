@@ -25,16 +25,11 @@
 </head>
 <body>
 
-  <!--
-    The canvas is the ONLY gameplay surface: everything (kitten, obstacles,
-    cupcakes, ground, parallax) is painted there by game.js.
-    The UI on top is plain DOM so text stays crisp on any DPI and is
-    trivially restyled without touching the render loop.
-  -->
+  <!-- QUE MIRABA JAJAJAJAJAJA  -->
   <div id="app">
     <canvas id="game"></canvas>
 
-    <!-- HUD: always visible while playing -->
+    
     <header id="hud" aria-hidden="true">
       <div class="hud-block">
         <span class="hud-label">PUNTUACION</span>
@@ -44,9 +39,12 @@
         <span class="hud-label">MEJOR PUNTACION</span>
         <span id="best" class="hud-value">0</span>
       </div>
+      <div class="hud-block hud-pause">
+      
+        <button id="pause-btn" type="button" aria-label="Pausa"><span></span><span></span></button>
+      </div>
       <div class="hud-block hud-cupcakes">
-        <!-- The icon is a sibling of the count, not inside it: the UI class
-             writes textContent to #cupcakes, which would wipe out an <img>. -->
+      
         <span class="hud-value hud-count">
           <img class="hud-icon" src="assets/pastelito.png" alt="">
           <span id="cupcakes">0</span>
@@ -54,14 +52,14 @@
       </div>
     </header>
 
-    <!-- Single overlay reused for the "ready" and "game over" states -->
+   
     <div id="overlay" class="overlay is-visible" data-state="ready">
       <div class="panel">
         <h1 id="overlay-title">TUCO SALTA</h1>
         <p id="overlay-text">SALTA LOS OBSTACULOS Y HACE QUE TUCO COMA PASTELITOS!</p>
 
         <div id="overlay-stats" class="stats" hidden>  
-          <!-- <div><button id="action-btn" type="button">PAUSA</button></div> -->
+         
           <div><span class="stats-label">PUNTUACION</span><span id="final-score">0</span></div>
           <div><span class="stats-label">MEJOR PUNTACION</span><span id="final-best">0</span></div>
           <div><span class="stats-label"><img class="stats-icon" src="assets/pastelito.png" alt="PASTELITOS"></span><span id="final-cupcakes">0</span></div>
@@ -69,6 +67,20 @@
 
         <button id="action-btn" type="button">JUGAR</button>
         <p class="hint">╰(*°▽°*)╯</p>
+      </div>
+    </div>
+  
+    <div id="prepremiere" class="prepremiere" hidden>
+      <div class="pp-panel">
+        <p class="pp-eyebrow" id="pp-eyebrow">PROXIMAMENTE</p>
+        <h1 class="pp-title" id="pp-title">TUCO SALTA</h1>
+        <div class="pp-clock">
+          <div><span class="pp-num" id="pp-d">00</span><span class="pp-unit">DIAS</span></div>
+          <div><span class="pp-num" id="pp-h">00</span><span class="pp-unit">HS</span></div>
+          <div><span class="pp-num" id="pp-m">00</span><span class="pp-unit">MIN</span></div>
+          <div><span class="pp-num" id="pp-s">00</span><span class="pp-unit">SEG</span></div>
+        </div>
+        <p class="pp-date" id="pp-date"></p>
       </div>
     </div>
   </div>

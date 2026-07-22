@@ -153,6 +153,45 @@ body {
     drop-shadow(-1px -1px 0 var(--ui-edge));
 }
 
+/* --- Pause key ------------------------------------------------------------
+   Bottom-left on purpose: taps to jump land centre and right, so a corner
+   button there is the least likely to be hit by accident mid-run. */
+.hud-pause {
+  position: fixed;
+  left: calc(var(--safe-left) + 14px);
+  bottom: calc(var(--safe-bottom) + 14px);
+  pointer-events: auto;
+}
+
+#pause-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 44px;                        /* 44px: the minimum comfortable tap target */
+  height: 44px;
+  padding: 0;
+  border: 3px solid var(--ui-edge);
+  border-radius: 0;
+  background: var(--ui-bg);
+  cursor: pointer;
+  box-shadow: 0 4px 0 0 #000, 0 4px 0 3px var(--ui-edge);
+  transition: transform .06s steps(2, end), box-shadow .06s steps(2, end);
+}
+
+#pause-btn span {                     /* the two bars */
+  width: 5px;
+  height: 16px;
+  background: var(--ui-ink);
+}
+
+#pause-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 3px var(--ui-edge);
+}
+
+#pause-btn:focus-visible { outline: 3px solid var(--ui-gold); outline-offset: 4px; }
+
 .hud-block { display: flex; flex-direction: column; line-height: 1.05; }
 .hud-right { margin-left: auto; align-items: flex-end; }
 .hud-cupcakes { position: absolute; left: 50%; transform: translateX(-50%); align-items: center; }
@@ -392,6 +431,83 @@ body {
 @keyframes blink {
   0%, 62%   { opacity: 1; }
   63%, 100% { opacity: .2; }
+}
+
+/* ------------------------- Pre-premiere lock ------------------------------
+   Sits above everything, including the overlay panel, and takes pointer events
+   so nothing behind it can be tapped. */
+.prepremiere {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bottom) + 20px);
+  background: #000;
+  color: var(--ui-ink);
+  font-family: var(--ui-font);
+  text-align: center;
+  pointer-events: auto;
+}
+
+.prepremiere[hidden] { display: none; }
+
+.pp-panel { max-width: min(92vw, 520px); }
+
+.pp-eyebrow {
+  font-size: clamp(10px, 3vw, 13px);
+  font-weight: 700;
+  letter-spacing: .38em;
+  text-indent: .38em;                 /* re-centre: tracking pads the right side */
+  color: var(--ui-gold);
+  margin-bottom: 14px;
+}
+
+.pp-title {
+  font-size: clamp(26px, 9vw, 52px);
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  text-shadow: 4px 4px 0 var(--ui-accent);
+  margin-bottom: clamp(22px, 6vw, 34px);
+}
+
+.pp-clock {
+  display: flex;
+  justify-content: center;
+  gap: clamp(10px, 4vw, 22px);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-clock > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: clamp(52px, 17vw, 78px);
+  padding: clamp(8px, 2.5vw, 12px) 4px;
+  border: 3px solid var(--ui-ink);
+  background: #0b0b12;
+}
+
+.pp-num {
+  font-size: clamp(22px, 8vw, 40px);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pp-unit {
+  font-size: clamp(8px, 2.4vw, 10px);
+  letter-spacing: .2em;
+  color: var(--ui-dim);
+}
+
+.pp-date {
+  margin-top: clamp(18px, 5vw, 26px);
+  font-size: clamp(11px, 3.2vw, 14px);
+  letter-spacing: .14em;
+  color: var(--ui-dim);
 }
 
 /* Landscape phones: shrink the panel so it never overflows a 400px-tall screen */
