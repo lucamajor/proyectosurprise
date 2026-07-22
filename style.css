@@ -1,0 +1,412 @@
+/* =============================================================================
+   KITTY RUNNER — style.css
+   Layout rules only. All gameplay pixels come from the <canvas>.
+
+   Mobile-first notes (tested against tall 20:9 screens like the Galaxy S24):
+   - 100dvh instead of 100vh so the layout does not jump when the mobile
+     browser's URL bar collapses.
+   - touch-action / user-select killed everywhere to avoid scroll-bounce,
+     text selection and the 300ms double-tap-zoom delay while tapping fast.
+   - env(safe-area-inset-*) keeps the HUD out of the notch and the gesture bar.
+   ========================================================================== */
+
+:root {
+  /* First-paint fallback for the canvas only — the real sky is painted by
+     GameConfig.theme in game.js. Declared once here (not per theme) because
+     the world is pinned to the magenta night; matching it avoids a pink flash
+     on load. If you set GameConfig.theme.force back to null, give these
+     per-theme values again. */
+  --sky-top:    #dcd8c8;
+  --sky-bottom: #abf0d4;
+  --ink:        #2b2b33;
+  --ink-soft:   #6f6f7d;
+  --accent:     #e63946;   /* the kitten's red */
+  --panel:      rgba(255, 255, 255, 0.86);
+
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+
+  /* ---- Retro arcade UI -----------------------------------------------------
+     Deliberately single-theme: an arcade screen is dark on a lit cabinet, so
+     the panel stays dark whatever the device theme. The HUD sits directly on
+     the world instead, so it uses a hard black outline to stay legible over
+     both the pink daytime sky and the dark one. */
+  --ui-bg:     #14121c;   /* CRT black, biased violet to echo the cat's outline */
+  --ui-ink:    #fdf6e3;   /* warm phosphor white */
+  --ui-dim:    #9a8fa8;   /* muted labels */
+  --ui-accent: #e63946;   /* kept from the original palette for continuity */
+  --ui-gold:   #ffcc33;   /* score amber */
+  --ui-edge:   #000;      /* hard outlines and shadows, never blurred */
+
+  /* No webfont: the pixel look comes from monospace + uppercase + tracking.
+     Linking a font CDN risks a silent fallback and buys nothing here. */
+  --ui-font: ui-monospace, "Cascadia Mono", Consolas, "SF Mono",
+             "DejaVu Sans Mono", "Courier New", monospace;
+}
+
+/* Dark palette, defined once as tokens. The OS preference supplies the default;
+   an explicit data-theme on <html> (set by hosts with their own light/dark
+   toggle) must win over it in BOTH directions, so it is restated after. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:        #f4f4f8;
+    --ink-soft:   #a9a9bd;
+    --panel:      rgba(28, 28, 38, 0.86);
+  }
+}
+
+:root[data-theme="dark"] {
+  --ink:        #f4f4f8;
+  --ink-soft:   #a9a9bd;
+  --panel:      rgba(218, 18, 184, 0.86);
+}
+
+:root[data-theme="light"] {
+  --ink:        #2b2b33;
+  --ink-soft:   #6f6f7d;
+  --panel:      rgba(255, 255, 255, 0.86);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* fonts */
+
+@font-face {
+  font-family: "GeneralFont"; /* You can name this whatever you want */
+  src: url("../assets/fonts/w95f.woff2") format("truetype"); 
+  font-weight: normal;
+  font-style: normal;
+}
+
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;          /* no pull-to-refresh mid-run */
+  background: var(--sky-bottom);
+  color: var(--ink);
+  font-family: "GeneralFont", "Segoe UI", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  /* Every touch is a jump, never a scroll / selection / long-press menu. */
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Pinned to the viewport rather than flowed: guarantees a true full-bleed
+   playfield even if a host wraps the page in a padded container. */
+#app {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;                     /* dvh -> stable on mobile browsers */
+  min-height: 100vh;                  /* fallback for old engines */
+  overflow: hidden;
+}
+
+/* The canvas is sized in JS (CSS pixels + devicePixelRatio backing store). */
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 100%);
+  touch-action: none;
+}
+
+/* ------------------------------- HUD ------------------------------------- */
+
+#hud {
+  position: absolute;
+  top: calc(var(--safe-top) + 12px);
+  left: calc(var(--safe-left) + 16px);
+  right: calc(var(--safe-right) + 16px);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  pointer-events: none;               /* taps go through to the game */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pastelito icon + count, sitting on one baseline. Sized in `em` so it tracks
+   the HUD type scale automatically on every screen size. */
+.hud-count { display: inline-flex; align-items: center; gap: .38em; }
+
+.hud-icon {
+  height: 1.25em;
+  width: auto;
+  image-rendering: pixelated;          /* the CSS twin of the canvas's
+                                          imageSmoothingEnabled = false */
+  /* Four stacked drop-shadows fake the same hard outline the HUD text gets,
+     so the sprite doesn't look pasted on top of outlined numbers. */
+  filter:
+    drop-shadow( 1px  1px 0 var(--ui-edge))
+    drop-shadow(-1px  1px 0 var(--ui-edge))
+    drop-shadow( 1px -1px 0 var(--ui-edge))
+    drop-shadow(-1px -1px 0 var(--ui-edge));
+}
+
+.hud-block { display: flex; flex-direction: column; line-height: 1.05; }
+.hud-right { margin-left: auto; align-items: flex-end; }
+.hud-cupcakes { position: absolute; left: 50%; transform: translateX(-50%); align-items: center; }
+
+/* Readouts are drawn like sprite text: flat fill plus a hard, unblurred
+   offset shadow. That outline is what keeps them legible over both the pale
+   pink sky and the dark one, with no plate behind them. */
+/* A full hard outline on all sides, not a single offset shadow. The HUD has no
+   plate behind it, so pale gold and white would otherwise sit light-on-light
+   against the daytime sky. Outlining the glyphs the way arcade sprite text does
+   keeps them readable over any world colour — including whatever you change
+   the sky to later. */
+.hud-label {
+  font-family: var(--ui-font);
+  font-size: clamp(9px, 2.6vw, 12px);
+  font-weight: 700;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--ui-gold);
+  text-shadow:
+     1px  1px 0 var(--ui-edge), -1px  1px 0 var(--ui-edge),
+     1px -1px 0 var(--ui-edge), -1px -1px 0 var(--ui-edge),
+     0 2px 0 rgba(0, 0, 0, .35);
+}
+
+.hud-value {
+  font-family: var(--ui-font);
+  font-size: clamp(18px, 5.2vw, 30px);
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: var(--ui-ink);
+  text-shadow:
+     2px  2px 0 var(--ui-edge), -2px  2px 0 var(--ui-edge),
+     2px -2px 0 var(--ui-edge), -2px -2px 0 var(--ui-edge),
+     0    2px 0 var(--ui-edge),  0   -2px 0 var(--ui-edge),
+     2px  0   0 var(--ui-edge), -2px  0   0 var(--ui-edge),
+     3px  4px 0 rgba(0, 0, 0, .45);
+}
+
+/* Milestone flash. `steps()` makes it snap between states like a sprite
+   swap rather than easing smoothly. */
+.hud-value.pop { animation: pop .36s steps(3, end); }
+@keyframes pop {
+  0%   { transform: scale(1);    color: var(--ui-ink); }
+  40%  { transform: scale(1.3);  color: var(--ui-gold); }
+  100% { transform: scale(1);    color: var(--ui-ink); }
+}
+
+/* ----------------------------- Overlay ----------------------------------- */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 16px);
+  /* A flat dim, no backdrop blur: blur reads as a modern OS dialog, and it is
+     the most expensive thing on the page to composite on a phone. */
+  background: rgba(12, 10, 18, .45);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .22s ease;
+  pointer-events: none;               /* the document listener handles taps */
+}
+
+.overlay.is-visible { opacity: 1; visibility: visible; }
+
+/* The cabinet screen: square corners, a double frame, and a hard offset
+   shadow with zero blur. Blur is what would make this read as a modern
+   dialog instead of an arcade box. */
+.panel {
+  position: relative;
+  width: min(92vw, 420px);
+  padding: clamp(20px, 5.5vw, 32px);
+  border-radius: 0;
+  background: var(--ui-bg);
+  font-family: var(--ui-font);
+  color: var(--ui-ink);
+  text-align: center;
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 3px var(--ui-ink),      /* inner keyline  */
+    inset 0 0 0 6px var(--ui-bg),       /* gap            */
+    inset 0 0 0 9px rgba(253, 246, 227, .3),
+    0 0 0 4px var(--ui-edge),           /* outer border   */
+    10px 10px 0 4px rgba(0, 0, 0, .5);  /* hard drop cast */
+}
+
+/* Scanlines. Kept faint — on a 412px screen anything stronger starts to
+   chew into the legibility of the score numbers. */
+.panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, .26) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+/* Chromatic offset on the title, the way arcade marquees mis-registered. */
+.panel h1 {
+  font-size: clamp(20px, 6.4vw, 32px);
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  margin-bottom: 10px;
+  color: var(--ui-ink);
+  text-shadow: 3px 3px 0 var(--ui-accent);
+}
+
+.panel p {
+  font-size: clamp(12px, 3.3vw, 15px);
+  line-height: 1.55;
+  letter-spacing: .04em;
+  color: var(--ui-dim);
+}
+
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: clamp(14px, 6vw, 30px);
+  margin: 20px 0 4px;
+  font-size: clamp(18px, 5.4vw, 26px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-gold);
+  text-shadow: 2px 2px 0 var(--ui-edge);
+}
+
+/* `display:flex` above would otherwise beat the UA's [hidden] rule. */
+.stats[hidden] { display: none; }
+
+.stats > div { display: flex; flex-direction: column; gap: 2px; }
+
+.stats-label {
+  font-size: clamp(9px, 2.6vw, 11px);
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ui-dim);
+  text-shadow: none;
+  /* Fixed height, not min-height: the icon column is taller than a line of
+     text, and any growth here pushes that column's number out of line with
+     the other two. */
+  height: 1.4em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Taller than its 1.4em slot on purpose — it overflows evenly above and below,
+   staying legible without contributing height. No outline needed: it sits on
+   the dark panel, which already separates it. */
+.stats-icon {
+  height: 2.1em;
+  width: auto;
+  image-rendering: pixelated;
+}
+
+/* A physical key: it sits on a solid colour "side wall" and travels down by
+   exactly that wall's height when pressed, so the motion reads as depression
+   rather than a slide. */
+#action-btn {
+  pointer-events: auto;
+  position: relative;
+  margin-top: 22px;
+  padding: 13px 38px;
+  
+  /* Foundation */
+  background: var(--ui-accent);
+  color: var(--ui-ink);
+  font-family: var(--ui-font);
+  font-size: clamp(14px, 4.2vw, 17px);
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  
+  /* Retro sharp borders and text */
+  border: 4px solid var(--ui-edge);
+  border-radius: 0;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 1); /* Darkened for a harsher 8-bit contrast */
+  transition: transform .08s steps(2, end), box-shadow .08s steps(2, end), filter .08s;
+
+  }
+
+
+
+/* Hover: Slight lift and brightness bump */
+#action-btn:hover {
+  filter: brightness(1.1);
+  transform: translate(-2px, -2px);
+  /* box-shadow: 
+    inset 4px 4px 0px 0px rgba(255, 255, 255, 0.4),
+    inset -4px -4px 0px 0px rgba(0, 0, 0, 0.3),
+    8px 8px 0px 0px var(--ui-edge),
+    12px 12px 0px 0px #8c1f29; */
+}
+
+/* Active: The physical "click" pressing the button down into the shadow */
+#action-btn:active {
+  filter: brightness(0.9);
+  transform: translate(6px, 6px);
+  box-shadow: 
+    inset 4px 4px 0px 0px rgba(255, 255, 255, 0.1),
+    inset -4px -4px 0px 0px rgba(0, 0, 0, 0.4),
+    0px 0px 0px 0px var(--ui-edge),
+    4px 4px 0px 0px #8c1f29;
+}
+
+/* #action-btn:hover { background: #f04a57; }
+
+#action-btn:active {
+  transform: translateY(6px);
+  box-shadow: 0 0 0 3px var(--ui-edge);
+} */
+
+/* Keyboard users get the same affordance as pointer users. */
+#action-btn:focus-visible {
+  outline: 3px solid var(--ui-gold);
+  outline-offset: 4px;
+}
+
+/* The "insert coin" blink: a hard on/off, never a fade. */
+.hint {
+  margin-top: 16px;
+  font-size: clamp(11px, 3.1vw, 13px);
+  letter-spacing: .12em;
+  color: var(--ui-gold);
+  animation: blink 1.1s steps(1, end) infinite;
+}
+
+@keyframes blink {
+  0%, 62%   { opacity: 1; }
+  63%, 100% { opacity: .2; }
+}
+
+/* Landscape phones: shrink the panel so it never overflows a 400px-tall screen */
+@media (orientation: landscape) and (max-height: 480px) {
+  .panel   { padding: 16px 24px; }
+  .panel h1 { font-size: 20px; }
+  .stats   { margin: 10px 0 0; }
+  #action-btn { margin-top: 10px; padding: 9px 30px; }
+  .hint    { margin-top: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-value.pop { animation: none; }
+  .overlay { transition: none; }
+  .hint { animation: none; opacity: 1; }      /* a blink is exactly what this
+                                                 setting exists to suppress */
+  #action-btn { transition: none; }
+}

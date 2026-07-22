@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($py = \\(Get-Command python -ErrorAction SilentlyContinue\\); if \\($py\\) { \"python: $\\($py.Source\\)\" } else { \"no python\" }; $node = \\(Get-Command node -ErrorAction SilentlyContinue\\); if \\($node\\) { \"node: $\\($node.Source\\)\" } else { \"no node\" })",
+      "PowerShell(python -c \"import PIL; print\\('Pillow', PIL.__version__\\)\")",
+      "PowerShell(python -m pip install --user --quiet Pillow 2>&1)",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\analyze.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\grid.py\")",
+      "PowerShell($src = \"C:\\\\Users\\\\Luca\\\\OneDrive\\\\Desktop\\\\Proyectito\\\\assets\"; New-Item -ItemType Directory -Force -Path \"$src\\\\source\" | Out-Null; Copy-Item \"$src\\\\kitten.png\",\"$src\\\\kitten-jump.png\" -Destination \"$src\\\\source\" -Force; Get-ChildItem \"$src\\\\source\" | Select-Object Name, Length)",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\process.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\preview.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\palette.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\build_sprites.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\check_frames.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\check_clip.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\build_cycle.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\inspect_cycle.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\build_cycle.py\" 2>&1)",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\final_preview.py\")",
+      "PowerShell($s = \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\"; $a = \"C:\\\\Users\\\\Luca\\\\OneDrive\\\\Desktop\\\\Proyectito\\\\assets\"; Copy-Item \"$s\\\\run_strip.png\" \"$a\\\\kitten.png\" -Force; Copy-Item \"$s\\\\jump_frame.png\" \"$a\\\\kitten-jump.png\" -Force; python -c \"from PIL import Image; import os; [print\\(f'{n}: {Image.open\\(os.path.join\\(r\\\\\"$a\\\\\", n\\)\\).size}  {os.path.getsize\\(os.path.join\\(r\\\\\"$a\\\\\", n\\)\\)} bytes'\\) for n in \\('kitten.png','kitten-jump.png'\\)]\")",
+      "PowerShell($s = \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\"; $a = \"C:\\\\Users\\\\Luca\\\\OneDrive\\\\Desktop\\\\Proyectito\\\\assets\"; Copy-Item \"$s\\\\run_strip.png\" \"$a\\\\kitten.png\" -Force; Copy-Item \"$s\\\\jump_frame.png\" \"$a\\\\kitten-jump.png\" -Force; Get-ChildItem $a -File | Select-Object Name, Length)",
+      "PowerShell($a = \"C:\\\\Users\\\\Luca\\\\OneDrive\\\\Desktop\\\\Proyectito\\\\assets\"; Move-Item \"$a\\\\frame2.jpg\",\"$a\\\\frame3.jpg\",\"$a\\\\frame4.jpg\" -Destination \"$a\\\\source\" -Force; Write-Output \"--- assets ---\"; Get-ChildItem $a -File | Select-Object Name, Length; Write-Output \"--- assets\\\\source \\(build inputs\\) ---\"; Get-ChildItem \"$a\\\\source\" -File | Select-Object Name, Length)",
+      "Skill(artifact-design)",
+      "Skill(artifact-design:*)",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\build_artifact.py\")",
+      "PowerShell(Copy-Item \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\kitty-runner.html\" \"C:\\\\Users\\\\Luca\\\\OneDrive\\\\Desktop\\\\Proyectito\\\\_bundle_test.html\" -Force)",
+      "PowerShell(\"staged\")",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\analyze_pastelito.py\")",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\build_pastelito.py\")",
+      "PowerShell($s = \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\"; python \"$s\\\\build_artifact.py\"; Copy-Item \"$s\\\\kitty-runner.html\" \"C:\\\\Users\\\\Luca\\\\OneDrive\\\\Desktop\\\\Proyectito\\\\_bundle_test.html\" -Force; Write-Output \"--- staged for test ---\")",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\make_reference.py\")",
+      "PowerShell($a = \"C:\\\\Users\\\\Luca\\\\OneDrive\\\\Desktop\\\\Proyectito\\\\assets\"; Copy-Item \"$a\\\\sky.png\",\"$a\\\\floor.png\" -Destination \"$a\\\\source\" -Force; Get-ChildItem \"$a\\\\source\" -File | Select-Object Name, Length)",
+      "PowerShell(python \"C:\\\\Users\\\\Luca\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Luca-OneDrive-Desktop-Proyectito\\\\c4c6989d-c33b-49f4-b99f-9d601ff441c4\\\\scratchpad\\\\build_map.py\")"
+    ]
+  }
+}

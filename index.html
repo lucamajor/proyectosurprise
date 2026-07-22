@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <!--
+    STRICT VIEWPORT
+    - width=device-width      -> use the real device width (no 980px fake viewport)
+    - maximum-scale=1.0       -> blocks pinch zoom
+    - user-scalable=no        -> blocks double-tap-to-zoom while spamming jump
+    - viewport-fit=cover      -> lets the page paint under the notch / rounded corners
+                                 (we compensate with env(safe-area-inset-*) in style.css)
+  -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <meta name="theme-color" content="#dcd8c8">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <title>OMG QUE ES ESTO!!!!</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐈</text></svg>">
+</head>
+<body>
+
+  <!--
+    The canvas is the ONLY gameplay surface: everything (kitten, obstacles,
+    cupcakes, ground, parallax) is painted there by game.js.
+    The UI on top is plain DOM so text stays crisp on any DPI and is
+    trivially restyled without touching the render loop.
+  -->
+  <div id="app">
+    <canvas id="game"></canvas>
+
+    <!-- HUD: always visible while playing -->
+    <header id="hud" aria-hidden="true">
+      <div class="hud-block">
+        <span class="hud-label">PUNTUACION</span>
+        <span id="score" class="hud-value">0</span>
+      </div>
+      <div class="hud-block hud-right">
+        <span class="hud-label">MEJOR PUNTACION</span>
+        <span id="best" class="hud-value">0</span>
+      </div>
+      <div class="hud-block hud-cupcakes">
+        <!-- The icon is a sibling of the count, not inside it: the UI class
+             writes textContent to #cupcakes, which would wipe out an <img>. -->
+        <span class="hud-value hud-count">
+          <img class="hud-icon" src="assets/pastelito.png" alt="">
+          <span id="cupcakes">0</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- Single overlay reused for the "ready" and "game over" states -->
+    <div id="overlay" class="overlay is-visible" data-state="ready">
+      <div class="panel">
+        <h1 id="overlay-title">TUCO SALTA</h1>
+        <p id="overlay-text">SALTA LOS OBSTACULOS Y HACE QUE TUCO COMA PASTELITOS!</p>
+
+        <div id="overlay-stats" class="stats" hidden>  
+          <!-- <div><button id="action-btn" type="button">PAUSA</button></div> -->
+          <div><span class="stats-label">PUNTUACION</span><span id="final-score">0</span></div>
+          <div><span class="stats-label">MEJOR PUNTACION</span><span id="final-best">0</span></div>
+          <div><span class="stats-label"><img class="stats-icon" src="assets/pastelito.png" alt="PASTELITOS"></span><span id="final-cupcakes">0</span></div>
+        </div>
+
+        <button id="action-btn" type="button">JUGAR</button>
+        <p class="hint">╰(*°▽°*)╯</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
