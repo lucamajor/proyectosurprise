@@ -329,6 +329,47 @@ const GameConfig = {
     restartDelay: 0.45,     // s after dying before a tap restarts (anti-misclick)
   },
 
+  /* ---- Sound ---------------------------------------------------------------
+   * Every clip is optional: a null `src`, a missing file or a browser that
+   * refuses to play simply means silence, never a broken game.
+   *
+   *   volume      0..1, multiplied by `master` (and by `music` for the track)
+   *   pool        how many copies to keep. A sound that can retrigger before it
+   *               finishes needs > 1, because one HTMLAudioElement can only
+   *               play once at a time — a second pickup would cut the first off
+   *               mid-sound. Pickups and jumps overlap; a death cannot.
+   *   startAt     seconds to skip at the head of the file. These recordings
+   *               carry leading silence, and since playback starts at 0 that
+   *               silence lands as input lag — measured: jump 118ms, meow
+   *               147ms, and cat-hit a full 744ms. Each value below sits just
+   *               before the real onset, so the attack isn't clipped.
+   *   maxSeconds  how long to play for, counted from `startAt`. cat-hit is a 5s
+   *               file whose audio is all inside 725-900ms; without this it
+   *               would hold silence straight over the next run.
+   */
+  audio: {
+    enabled: true,
+    master: 0.9,
+    musicVolume: 0.30,
+    sfxKey: 'kittyRunner.mutedSfx',
+    musicKey: 'kittyRunner.mutedMusic',
+
+    sfx: {
+      jump:   { src: 'assets/sounds/cat/cat-jump.mp3',  volume: 0.40, pool: 3,
+                startAt: 0.10 },
+      pickup: { src: 'assets/sounds/items/pastelito/pastelito-take.wav',
+                volume: 0.55, pool: 4 },          // no lead silence; starts at 0
+      hit:    { src: 'assets/sounds/cat/cat-hit.mp3',   volume: 0.85, pool: 2,
+                startAt: 0.71, maxSeconds: 0.30 },
+      meow:   { src: 'assets/sounds/cat/cat-sound.mp3', volume: 0.70, pool: 2,
+                startAt: 0.13 },
+    },
+
+    // 3.7MB / 226s. Loaded lazily on the first user gesture so it never delays
+    // the game appearing.
+    music: { src: 'assets/sounds/soundtrack/menu-song.mp3', loop: true },
+  },
+
   /* ---- Pre-premiere lock ---------------------------------------------------
    * While enabled and the release date is still ahead, the whole page goes
    * black, every input is swallowed and only the countdown shows. It unlocks
@@ -342,7 +383,7 @@ const GameConfig = {
    * game genuinely must not be playable before launch, don't ship the files
    * until then. */
   prePremiere: {
-    enabled: true,
+    enabled: false,
     releaseDate: '2026-08-01T00:00:00',
     eyebrow: 'PROXIMAMENTE',
     title: '😴😴😴😴',
@@ -418,6 +459,156 @@ const Storage = {
   get(key) { try { return localStorage.getItem(key); } catch (e) { return null; } },
   set(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* no-op */ } },
 };
+
+
+/* =============================================================================
+ * SOUND
+ *
+ * Deliberately built on plain <audio> rather than the Web Audio API: the game
+ * needs a handful of one-shots and one looping track, and HTMLAudioElement does
+ * that with no context plumbing and no decode step.
+ *
+ * Three facts drive the whole design:
+ *
+ *  1. BROWSERS BLOCK AUDIO until the user interacts with the page. So nothing
+ *     plays until `unlock()` is called from a real input event — and the music,
+ *     which is 3.7MB, isn't even fetched until then.
+ *  2. ONE ELEMENT PLAYS ONE SOUND. Retriggering restarts it, cutting the
+ *     previous one off. Sounds that can overlap (pickups, jumps) therefore keep
+ *     a small pool of copies and round-robin through it.
+ *  3. AUDIO FAILS IN PUBLIC. A missing file, an unsupported codec, a refused
+ *     play() — every one of them is caught and ignored. Silence is an
+ *     acceptable outcome; an exception in the middle of a jump is not.
+ * ========================================================================== */
+class AudioManager {
+  constructor(cfg) {
+    this.cfg = cfg;
+    this.unlocked = false;
+    this.pools = new Map();       // name -> { els, next, def }
+    this.music = null;
+    this.musicWanted = false;
+
+    // Two independent switches: plenty of people want the effects but not the
+    // music, and each is remembered separately.
+    this.mutedSfx = Storage.get(cfg.sfxKey) === '1';
+    this.mutedMusic = Storage.get(cfg.musicKey) === '1';
+  }
+
+  /** Build the one-shot pools. Cheap: metadata only, no audio data yet. */
+  load() {
+    if (!this.cfg.enabled) return;
+    for (const [name, def] of Object.entries(this.cfg.sfx)) {
+      if (!def.src) continue;
+      const els = [];
+      for (let i = 0; i < (def.pool || 1); i++) {
+        const el = new Audio();
+        el.preload = 'auto';
+        el.src = def.src;
+        el.volume = Utils.clamp((def.volume ?? 1) * this.cfg.master, 0, 1);
+        els.push(el);
+      }
+      this.pools.set(name, { els, next: 0, def });
+    }
+  }
+
+  /**
+   * Called from the first real user gesture. Kicks each element once to satisfy
+   * the autoplay policy, then starts the music if it was requested earlier.
+   */
+  unlock() {
+    if (this.unlocked || !this.cfg.enabled) return;
+    this.unlocked = true;
+
+    for (const { els } of this.pools.values()) {
+      const el = els[0];
+      const p = el.play();
+      if (p && p.then) {
+        p.then(() => { el.pause(); el.currentTime = 0; }).catch(() => {});
+      }
+    }
+    if (this.musicWanted) this.startMusic();
+  }
+
+  /** Fire a one-shot. Safe to call before unlock (it just does nothing). */
+  play(name) {
+    if (!this.cfg.enabled || this.mutedSfx || !this.unlocked) return;
+    const pool = this.pools.get(name);
+    if (!pool) return;
+
+    const el = pool.els[pool.next];
+    pool.next = (pool.next + 1) % pool.els.length;
+
+    // Seek past any baked-in leading silence, so the sound lands on the frame
+    // that triggered it instead of a fraction of a second later.
+    const from = pool.def.startAt || 0;
+    try {
+      el.currentTime = from;
+      const p = el.play();
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* nothing worth breaking a frame over */ }
+
+    // Stop after `maxSeconds` of actual audio, measured from `startAt`.
+    if (pool.def.maxSeconds) {
+      clearTimeout(el._cut);
+      el._cut = setTimeout(() => {
+        try { el.pause(); el.currentTime = from; } catch (e) { /* no-op */ }
+      }, pool.def.maxSeconds * 1000);
+    }
+  }
+
+  /** Cut a sound short — used so a death sound can't bleed into the next run. */
+  stop(name) {
+    const pool = this.pools.get(name);
+    if (!pool) return;
+    for (const el of pool.els) {
+      clearTimeout(el._cut);
+      try { el.pause(); el.currentTime = pool.def.startAt || 0; }
+      catch (e) { /* no-op */ }
+    }
+  }
+
+  startMusic() {
+    const m = this.cfg.music;
+    if (!this.cfg.enabled || !m || !m.src) return;
+    this.musicWanted = true;
+    if (!this.unlocked || this.mutedMusic) return;   // resumes from unlock()
+
+    if (!this.music) {                       // lazy: 3.7MB, fetched on demand
+      this.music = new Audio();
+      this.music.src = m.src;
+      this.music.loop = m.loop !== false;
+      this.music.preload = 'auto';
+    }
+    this.music.volume = Utils.clamp(this.cfg.musicVolume * this.cfg.master, 0, 1);
+    const p = this.music.play();
+    if (p && p.catch) p.catch(() => {});
+  }
+
+  pauseMusic() {
+    if (this.music) { try { this.music.pause(); } catch (e) { /* no-op */ } }
+  }
+
+  resumeMusic() {
+    if (this.musicWanted && !this.mutedMusic) this.startMusic();
+  }
+
+  /** Effects only. @returns {boolean} the new muted state. */
+  toggleSfx() {
+    this.mutedSfx = !this.mutedSfx;
+    Storage.set(this.cfg.sfxKey, this.mutedSfx ? '1' : '0');
+    if (this.mutedSfx) for (const name of this.pools.keys()) this.stop(name);
+    return this.mutedSfx;
+  }
+
+  /** Background track only. @returns {boolean} the new muted state. */
+  toggleMusic() {
+    this.mutedMusic = !this.mutedMusic;
+    Storage.set(this.cfg.musicKey, this.mutedMusic ? '1' : '0');
+    if (this.mutedMusic) this.pauseMusic();
+    else this.resumeMusic();
+    return this.mutedMusic;
+  }
+}
 
 
 /* =============================================================================
@@ -835,6 +1026,7 @@ class Player extends Entity {
     this.bufferTimer = 0;
     this.holdTimer = 0;
     this.game.spawnDust(this.x + this.width * 0.3, this.game.groundY, 5);
+    this.game.audio.play('jump');
   }
 
   land() {
@@ -1281,6 +1473,9 @@ class Game {
 
     this.best = Number(Storage.get(GameConfig.storageKey) || 0);
 
+    this.audio = new AudioManager(GameConfig.audio);
+    this.audio.load();
+
     // Canvas palette follows the OS theme (CSS does the same for the chrome).
     this.darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
     this.applyTheme();
@@ -1422,6 +1617,10 @@ class Game {
     if (this.state === 'running') return;
     this.reset();
     this.state = 'running';
+    // The death sound outlives the restart delay, so silence it explicitly
+    // rather than letting it play over the top of the new run.
+    this.audio.stop('hit');
+    this.audio.play('meow');
     this.ui.hideOverlay();
     this.lastTime = performance.now();
     if (!this.rafId) this.rafId = requestAnimationFrame(t => this.loop(t));
@@ -1432,6 +1631,7 @@ class Game {
     this.state = 'over';
     this.deathTimer = 0;
     this.shake = GameConfig.fx.shakeOnHit * this.scale;
+    this.audio.play('hit');
 
     const score = Math.floor(this.score);
     if (score > this.best) {
@@ -1460,10 +1660,12 @@ class Game {
   togglePause() {
     if (this.state === 'running') {
       this.state = 'paused';
+      this.audio.pauseMusic();
       this.ui.showPaused();
     } else if (this.state === 'paused') {
       this.state = 'running';
       this.lastTime = performance.now();   // don't bank the paused seconds as dt
+      this.audio.resumeMusic();
       this.ui.hideOverlay();
     }
   }
@@ -1703,6 +1905,7 @@ class Game {
         this.cupcakes++;
         this.score += GameConfig.collectibles.points;
         this.ui.setCupcakes(this.cupcakes);
+        this.audio.play('pickup');
         this.texts.push(new FloatingText(
           cupcake.x + cupcake.width / 2, cupcake.y,
           `+${GameConfig.collectibles.points}`, this.scale));
@@ -2029,9 +2232,12 @@ function bindInput(game) {
   // Buttons handle their own clicks; the global jump listener must not also
   // fire for taps that land on them.
   const onButton = (event) => !!(event.target && event.target.closest &&
-    event.target.closest('#action-btn, #pause-btn'));
+    event.target.closest('#action-btn, #pause-btn, #mute-btn'));
 
   const press = (event) => {
+    // Browsers only allow audio once the user has interacted, so every input
+    // path unlocks it first. Cheap and idempotent after the first call.
+    game.audio.unlock();
     if (onButton(event)) return;
     if (event.cancelable) event.preventDefault();
     game.handleAction();
@@ -2058,6 +2264,7 @@ function bindInput(game) {
   document.addEventListener('keydown', (event) => {
     if (!JUMP_KEYS.has(event.code)) return;
     event.preventDefault();             // stop Space from scrolling / re-clicking
+    game.audio.unlock();                // keyboard counts as a user gesture too
     if (event.repeat) return;
     game.handleAction();
   });
@@ -2075,8 +2282,31 @@ function bindInput(game) {
 
   document.getElementById('pause-btn').addEventListener('click', (event) => {
     event.stopPropagation();
+    game.audio.unlock();
     game.togglePause();
   });
+
+  /* Two independent toggles: effects and music. Each paints itself from the
+   * manager's state, so the restored-from-storage value and the post-click
+   * value go through the same path. */
+  const bindToggle = (id, onGlyph, offGlyph, initial, toggle) => {
+    const el = document.getElementById(id);
+    const paint = (muted) => {
+      el.dataset.muted = muted ? '1' : '0';
+      el.textContent = muted ? offGlyph : onGlyph;
+    };
+    paint(initial);                       // restore last session's choice
+    el.addEventListener('click', (event) => {
+      event.stopPropagation();
+      game.audio.unlock();
+      paint(toggle());
+    });
+  };
+
+  bindToggle('mute-btn', '🔊', '🔇', game.audio.mutedSfx,
+             () => game.audio.toggleSfx());
+  bindToggle('music-btn', '🎵', '🔕', game.audio.mutedMusic,
+             () => game.audio.toggleMusic());
 
   // Belt and braces against pinch-zoom / double-tap-zoom on iOS Safari.
   document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
@@ -2088,9 +2318,15 @@ function bindInput(game) {
     if (event.key === 'Escape') game.togglePause();
   });
 
-  // Auto-pause: losing focus mid-run shouldn't cost you the run.
+  // Auto-pause: losing focus mid-run shouldn't cost you the run. Music stops
+  // whatever the state was, so the game is never heard from a buried tab.
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && game.state === 'running') game.togglePause();
+    if (document.hidden) {
+      if (game.state === 'running') game.togglePause();
+      else game.audio.pauseMusic();
+    } else if (game.state !== 'paused') {
+      game.audio.resumeMusic();
+    }
   });
 }
 
@@ -2128,6 +2364,12 @@ window.addEventListener('DOMContentLoaded', () => {
   } else {
     bindInput(game);
   }
+
+  /* Queue the music. It can't actually start until the player interacts —
+   * that's the autoplay policy, not a bug — so this only marks it as wanted;
+   * AudioManager.unlock() starts it for real. Behind the pre-premiere lock
+   * input isn't even bound, so nothing is fetched or heard until launch. */
+  game.audio.startMusic();
 
   // Draw the idle frame behind the title screen and keep it animating.
   game.lastTime = performance.now();

@@ -21,7 +21,7 @@
 
   <title>OMG QUE ES ESTO!!!!</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>?</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐈</text></svg>">
 </head>
 <body>
 
@@ -39,9 +39,14 @@
         <span class="hud-label">MEJOR PUNTACION</span>
         <span id="best" class="hud-value">0</span>
       </div>
-      <div class="hud-block hud-pause">
+      <!-- Not a .hud-block: it's fixed-positioned, outside the HUD's flex row.
+           Carrying that class also let `.hud-block{flex-direction:column}` win
+           on the cascade and stack the two buttons. -->
+      <div class="hud-pause">
       
         <button id="pause-btn" type="button" aria-label="Pausa"><span></span><span></span></button>
+        <button id="mute-btn" type="button" aria-label="Efectos de sonido">🔊</button>
+        <button id="music-btn" type="button" aria-label="Musica">🎵</button>
       </div>
       <div class="hud-block hud-cupcakes">
       

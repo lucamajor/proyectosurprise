@@ -160,10 +160,17 @@ body {
   position: fixed;
   left: calc(var(--safe-left) + 14px);
   bottom: calc(var(--safe-bottom) + 14px);
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
   pointer-events: auto;
+  /* Above the game-over panel (which sits later in the DOM and would otherwise
+     paint over these), but below the pre-premiere lock at z-index 50 — muting
+     should stay possible on the death screen, not before launch. */
+  z-index: 20;
 }
 
-#pause-btn {
+#pause-btn, #mute-btn, #music-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -179,18 +186,29 @@ body {
   transition: transform .06s steps(2, end), box-shadow .06s steps(2, end);
 }
 
+#mute-btn, #music-btn {
+  font-size: 19px;
+  line-height: 1;
+}
+
+/* Dimmed rather than hidden, so the control still reads as a toggle. */
+#mute-btn[data-muted="1"],
+#music-btn[data-muted="1"] { opacity: .45; }
+
 #pause-btn span {                     /* the two bars */
   width: 5px;
   height: 16px;
   background: var(--ui-ink);
 }
 
-#pause-btn:active {
+#pause-btn:active, #mute-btn:active, #music-btn:active {
   transform: translateY(4px);
   box-shadow: 0 0 0 3px var(--ui-edge);
 }
 
-#pause-btn:focus-visible { outline: 3px solid var(--ui-gold); outline-offset: 4px; }
+#pause-btn:focus-visible,
+#mute-btn:focus-visible,
+#music-btn:focus-visible { outline: 3px solid var(--ui-gold); outline-offset: 4px; }
 
 .hud-block { display: flex; flex-direction: column; line-height: 1.05; }
 .hud-right { margin-left: auto; align-items: flex-end; }
