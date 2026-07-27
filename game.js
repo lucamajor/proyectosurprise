@@ -383,7 +383,7 @@ const GameConfig = {
    * game genuinely must not be playable before launch, don't ship the files
    * until then. */
   prePremiere: {
-    enabled: false,
+    enabled: true,
     releaseDate: '2026-08-01T00:00:00',
     eyebrow: 'PROXIMAMENTE',
     title: '😴😴😴😴',
