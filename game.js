@@ -386,7 +386,7 @@ const GameConfig = {
     enabled: true,
     releaseDate: '2026-08-01T00:00:00',
     eyebrow: 'PROXIMAMENTE',
-    title: '😴😴😴😴',
+    title: 'Me llamo como lo que hierve en la olla y ardo sin fuego, callado, en la sombra.,
     dateNote: '→←',
     bypassParam: 'preview',   // ?preview=1 skips the lock while you're testing
   },
